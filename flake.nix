@@ -1,64 +1,81 @@
 {
-  description = "Tauri + React + Tailwind (Bun) — Mobile Dev Template";
+  description = "Rust Development Flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    systems.url = "github:nix-systems/default";
-    rust.url = "github:msalmanrafadhlih/nixos-development-templates/main?dir=rust";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
 
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.systems.follows = "systems";
+    devenv.url = "github:cachix/devenv";
+
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-
-    git-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-
-    devenv = {
-      url = "github:cachix/devenv";
-      inputs = {
-        flake-compat.follows = "flake-compat";
-        git-hooks.follows = "git-hooks";
-      };
-    };
-
-    android-nixpkgs = {
-      url = "github:tadfisher/android-nixpkgs";
+    crane = {
+      url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
-    { nixpkgs, flake-utils, ... }@inputs:
+    {
+      nixpkgs,
+      fenix,
+      crane,
+      flake-utils,
+      ...
+    }@inputs:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          config = {
-            android_sdk.accept_license = true;
-            allowUnfree = true;
-          };
         };
+
+        # Toolchain juga didefinisikan di sini untuk naersk
+        toolchain = fenix.packages.${system}.stable.toolchain;
+        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+
+        commonArgs = {
+          src = craneLib.cleanCargoSource (craneLib.path ./.);
+          strictDeps = true;
+
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.openssl ];
+        };
+
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        my-app = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+          }
+        );
       in
       {
-        devShells = {
-          default = inputs.devenv.lib.mkShell {
-            inherit inputs pkgs;
-            modules = [
-              inputs.rust.devenvModules.default
-              (import ./devenv.nix { templateInputs = inputs; })
-            ];
+        devShells.default = inputs.devenv.lib.mkShell {
+          inherit inputs pkgs;
+          modules = [
+            (import ./devenv.nix { templateInputs = inputs; })
+            { setupRust.enable = true; }
+          ];
+        };
+
+        # Build project sebagai paket Nix
+        packages.default = my-app;
+        checks = {
+          clippy = craneLib.cargoClippy {
+            src = craneLib.cleanCargoSource ./.;
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+          };
+          fmt = craneLib.cargoFmt {
+            src = craneLib.cleanCargoSource ./.;
+          };
+          nextest = craneLib.cargoNextest {
+            src = craneLib.cleanCargoSource ./.;
+            inherit cargoArtifacts;
           };
         };
       }

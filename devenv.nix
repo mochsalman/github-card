@@ -6,115 +6,62 @@
   ...
 }:
 let
-  useNixpkgs = true;
-  androidSdk = templateInputs.android-nixpkgs.sdk.${pkgs.stdenv.hostPlatform.system} (
-    sdkPkgs: with sdkPkgs; [
-      cmdline-tools-latest
-      platform-tools
-      build-tools-35-0-0
-      platforms-android-35
-      ndk-26-1-10909125 # versi NDK spesifik, bukan "latest" yang bisa berubah-ubah
-      emulator
-      system-images-android-34-google-apis-playstore-x86-64
+  system = pkgs.stdenv.hostPlatform.system;
+  fenix = templateInputs.fenix;
+  cfg = config.setupRust;
+
+  toolchain = fenix.packages.${system}.combine (
+    [
+      fenix.packages.${system}.stable.cargo
+      fenix.packages.${system}.stable.rustc
+      fenix.packages.${system}.stable.rust-src
+      fenix.packages.${system}.stable.rust-analyzer
+      fenix.packages.${system}.stable.clippy
+      fenix.packages.${system}.stable.rustfmt
     ]
+    ++ cfg.toolchains
   );
 in
 {
+  options.setupRust = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable konfigurasi Rust untuk template ini.";
+    };
 
-  languages.javascript = {
-    enable = true;
-    bun.enable = true;
+    toolchains = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      default = [ ];
+      description = ''
+        Komponen/target Rust tambahan (mis. fenix `targets.<target>.stable.rust-std`)
+        yang digabung ke dalam SATU toolchain `combine` yang sama, bukan derivation terpisah.
+      '';
+    };
   };
 
-  # Gradle butuh JDK
-  languages.java.enable = true;
-
-  # === Android SDK/NDK/emulator, modul bawaan devenv ===
-  android = {
-    enable = useNixpkgs;
-    platforms.version = [ "34" ];
-    buildTools.version = [ "34.0.0" ];
-    abis = [
-      "arm64-v8a"
-      "x86_64"
-    ]; # sesuaikan kalau laptop kamu ARM
-    systemImageTypes = [ "google_apis_playstore" ];
-    ndk.enable = true;
-    googleAPIs.enable = true;
-    emulator.enable = true;
-    # android-studio.enable = true; # aktifkan kalau mau install Android Studio juga
-  };
-
-  packages =
-    with pkgs;
-    [
-      git
+  config = lib.mkIf cfg.enable {
+    packages = [
+      toolchain
+    ]
+    ++ (with pkgs; [
+      cargo-watch # auto-rebuild saat file berubah
+      cargo-edit # cargo add/rm/upgrade
+      cargo-audit # audit depedency
       pkg-config
       openssl
-      webkitgtk_4_1
-      gtk3
-      libsoup_3
-      librsvg
-      at-spi2-atk
-      glib-networking
-    ]
-    ++ lib.optional (!useNixpkgs) androidSdk;
+    ]);
 
-  # env var yang sebelumnya di-set otomatis oleh modul `android`,
-  # sekarang harus manual karena kita pakai SDK dari input lain:
-  env = {
-    GREET = "Tauri + React + Tailwind (Bun) — Mobile Dev";
-  }
-  // lib.optionalAttrs (!useNixpkgs) {
-    ANDROID_HOME = lib.mkIf "${androidSdk}/share/android-sdk";
-    ANDROID_NDK_ROOT = lib.mkIf "${androidSdk}/share/android-sdk/ndk/26.1.10909125";
-  }
-  // {
-    ANDROID_SDK_ROOT = config.env.ANDROID_HOME;
-    LD_LIBRARY_PATH = lib.makeLibraryPath (
-      with pkgs;
-      [
-        webkitgtk_4_1
-        gtk3
-        libsoup_3
-        librsvg
-        at-spi2-atk
-        glib
-        openssl
-      ]
-    );
-  };
+    env.RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
+    env.PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
 
-  scripts = {
-    tauri-init.exec = "bun create tauri-app@latest ./start-project";
-    android-init.exec = "bun run tauri android init";
-    android-dev.exec = "bun run tauri android dev";
-    android-build.exec = "bun run tauri android build";
-    make-avd.exec = ''
-      avdmanager create avd --force \
-        --name tauri-dev \
-        --package 'system-images;android-34;google_apis_playstore;x86_64'
+    enterShell = ''
+      echo "🦀 Rust Dev Shell (${pkgs.stdenv.hostPlatform.system})"
+      echo ""
+      echo "cargo     : $(cargo --version 2>/dev/null | awk '{print $2}' || echo 'Not Found')"
+      echo "rustc     : $(rustc --version 2>/dev/null | awk '{print $2}' || echo 'Not Found')"
+      echo "targets   : $(rustc --print target-list 2>/dev/null | grep -c android || echo 0) android target(s) terpasang"
+      echo ""
     '';
   };
-
-  enterShell = ''
-    _help() {
-      echo $GREET
-      echo "______________________________________"
-      echo ""
-      echo "bun       : $(bun --version)"
-      echo "cargo     : $(cargo --version)"
-      echo "adb       : $(adb --version 2>/dev/null | head -n1 || echo 'belum ada device/emulator')"
-      echo ""
-      echo "tauri-init    : bun create tauri-app ."
-      echo "android-init  : bun run tauri android init"
-      echo "android-dev   : bun run tauri android dev"
-      echo "android-build : bun run tauri android build"
-      echo "make-avd      : bikin emulator sekali saja"
-      if [ ! -f package.json ]; then
-        echo "Belum ada project di folder ini. Jalankan: tauri-init"
-      fi
-    }
-    _help
-  '';
 }
