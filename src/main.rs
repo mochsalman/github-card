@@ -35,6 +35,7 @@ struct Stargazers {
     #[serde(rename = "totalCount")]
     total_count: u32,
 }
+#[derive(Deserialize, Debug)]
 struct UserConfig {
     host: HostConfig,
     languages: LanguagesConfig,
@@ -103,7 +104,7 @@ async fn main() {
                         .replace("{{username}}", username)
                         .replace("{{repos}}", &repos.to_string())
                         .replace("{{stars}}", &stars.to_string())
-                        .replace("{{commits}}", &commits.to_string());
+                        .replace("{{commits}}", &commits.to_string())
                         // field baru
                         .replace("{{os}}", &config.host.os)
                         .replace("{{uptime}}", &config.host.uptime)
