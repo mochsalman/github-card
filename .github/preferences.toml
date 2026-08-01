@@ -1,0 +1,22 @@
+[host]
+os = "Windows 10, Android 14, Linux"
+uptime = "-"
+host = "-"
+kernel = "-"
+ide = "IDEA 2023.3.2, VSCode 1.96.0"
+
+[languages]
+secondary = "English"
+native = "Indonesian"
+
+[skills]
+softskill = "-"
+hardskill = "-"
+
+[contact]
+linkedIn = "-"
+discord = "-"
+
+[contact.email]
+personal = "-"
+work = "-"

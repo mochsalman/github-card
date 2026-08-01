@@ -35,6 +35,42 @@ struct Stargazers {
     #[serde(rename = "totalCount")]
     total_count: u32,
 }
+struct UserConfig {
+    host: HostConfig,
+    languages: LanguagesConfig,
+    skills: SkillsConfig,
+    contact: ContactConfig,
+}
+#[derive(Deserialize, Debug)]
+struct HostConfig {
+    os: String,
+    uptime: String,
+    host: String,
+    kernel: String,
+    ide: String,
+}
+#[derive(Deserialize, Debug)]
+struct LanguagesConfig {
+    secondary: String,
+    native: String,
+}
+#[derive(Deserialize, Debug)]
+struct SkillsConfig {
+    softskill: String,
+    hardskill: String,
+}
+#[derive(Deserialize, Debug)]
+struct ContactConfig {
+    email: EmailConfig,
+    #[serde(rename = "linkedIn")]
+    linked_in: String,
+    discord: String,
+}
+#[derive(Deserialize, Debug)]
+struct EmailConfig {
+    personal: String,
+    work: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -48,6 +84,14 @@ async fn main() {
 
     for username in usernames {
         println!("Generating stats untuk {username}...");
+
+        // load config TOML khusus user ini
+        let config_path = format!(".github/preferences.toml");
+        let config_str = fs::read_to_string(&config_path)
+            .unwrap_or_else(|_| panic!("gagal baca {config_path} — pastikan file config-nya ada"));
+        let config: UserConfig = toml::from_str(&config_str)
+            .unwrap_or_else(|e| panic!("format TOML salah di {config_path}: {e}"));
+        
         match fetch_stats(username).await {
             Ok((commits, repos, stars)) => {
                 for theme in ["dark", "light"] {
@@ -60,6 +104,20 @@ async fn main() {
                         .replace("{{repos}}", &repos.to_string())
                         .replace("{{stars}}", &stars.to_string())
                         .replace("{{commits}}", &commits.to_string());
+                        // field baru
+                        .replace("{{os}}", &config.host.os)
+                        .replace("{{uptime}}", &config.host.uptime)
+                        .replace("{{host}}", &config.host.host)
+                        .replace("{{kernel}}", &config.host.kernel)
+                        .replace("{{ide}}", &config.host.ide)
+                        .replace("{{lang_secondary}}", &config.languages.secondary)
+                        .replace("{{lang_native}}", &config.languages.native)
+                        .replace("{{softskill}}", &config.skills.softskill)
+                        .replace("{{hardskill}}", &config.skills.hardskill)
+                        .replace("{{email_personal}}", &config.contact.email.personal)
+                        .replace("{{email_work}}", &config.contact.email.work)
+                        .replace("{{linkedin}}", &config.contact.linked_in)
+                        .replace("{{discord}}", &config.contact.discord);
 
                     let out_path = format!(".github/{username}_{theme}.svg");
                     fs::write(&out_path, svg).expect("gagal tulis file SVG");
