@@ -51,7 +51,7 @@ async fn main() {
         match fetch_stats(username).await {
             Ok((commits, repos, stars)) => {
                 for theme in ["dark", "light"] {
-                    let template_path = format!("templates/card_{theme}.svg");
+                    let template_path = format!(".github/card_{theme}.svg");
                     let template = fs::read_to_string(&template_path)
                         .unwrap_or_else(|_| panic!("gagal baca {template_path}"));
 
