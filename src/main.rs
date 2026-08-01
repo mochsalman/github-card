@@ -1,17 +1,33 @@
-use axum::http::header;
-use axum::response::{IntoResponse, Response};
-use axum::{routing::get, Router};
+use axum::{
+    extract::{Path, State, Query},
+    http::{header, StatusCode},
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
 
+use moka::future::Cache;
 use serde::Deserialize;
 use serde_json::json;
+use std::time::Duration;
+use std::collections::HashMap;
+
+// tipe cache: key = username, value = SVG string yang sudah jadi
+type StatsCache = Cache<String, String>;
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
+    let cache: StatsCache = Cache::builder()
+        .time_to_live(Duration::from_secs(60 * 60)) // 1 jam
+        .max_capacity(100) // maksimal 100 entry username berbeda
+        .build();
+
     let app = Router::new()
         .route("/", get(|| async { "Server jalan!" }))
-        .route("/api/stats/{username}", get(stats_handler));
+        .route("/api/stats/{username}", get(stats_handler))
+        .with_state(cache); // <-- ini yang tadinya hilang
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
@@ -71,19 +87,35 @@ struct Stargazers {
 
 // --- Handler untuk GET /api/stats/{username} ---
 async fn stats_handler(
-    axum::extract::Path(username): axum::extract::Path<String>,
+    Path(username): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+    State(cache): State<StatsCache>,
 ) -> Response {
     if !is_allowed(&username) {
-        return (
-            axum::http::StatusCode::NOT_FOUND,
-            "Username tidak terdaftar",
-        ).into_response();
+        return (StatusCode::NOT_FOUND, "Username tidak terdaftar").into_response();
     }
+
+    let theme = params.get("theme").map(|s| s.as_str()).unwrap_or("dark");
+    let cache_key = format!("{username}:{theme}"); // penting! cache dipisah per tema
+    
+    // Check cache
+    if let Some(cached_svg) = cache.get(&cache_key).await {
+        println!("Cache HIT untuk {username}");
+        return ([(header::CONTENT_TYPE, "image/svg+xml")], cached_svg).into_response();
+    }
+
+    println!("Cache MISS untuk {username}, fetch dari GitHub...");
 
     match fetch_stats(&username).await {
         Ok((commits, repos, stars)) => {
-            let template = std::fs::read_to_string("templates/card.svg")
-                .expect("gagal baca templates/card.svg");
+            let template_path = if theme == "light" {
+                "templates/card_light.svg"
+            } else {
+                "templates/card_dark.svg"  
+            };
+            
+            let template = std::fs::read_to_string(template_path)
+                .expect("gagal baca template SVG");
 
             let svg = template
                 .replace("{{username}}", &username)
@@ -91,10 +123,13 @@ async fn stats_handler(
                 .replace("{{stars}}", &stars.to_string())
                 .replace("{{commits}}", &commits.to_string());
 
+            cache.insert(username.clone(), svg.clone()).await;
+
             (
                 [(header::CONTENT_TYPE, "image/svg+xml")],
                 svg,
-            ).into_response()
+            )
+                .into_response()
         }
         Err(e) => format!("Error: {e}").into_response(),
     }
@@ -144,11 +179,7 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32), String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    // log raw json to stdout
-    let raw_text = response.text().await.map_err(|e| e.to_string())?;
-    println!("RAW RESPONSE:\n{raw_text}");
-
-    let parsed: GraphQLResponse = serde_json::from_str(&raw_text).map_err(|e| e.to_string())?;
+    let parsed: GraphQLResponse = response.json().await.map_err(|e| e.to_string())?;
 
     let commits = parsed.data.user.contributions_collection.contribution_calendar.total_contributions;
     let repos = parsed.data.user.repositories.total_count;

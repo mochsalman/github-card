@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="495px" height="195px" font-family="Consolas,monospace" font-size="16px">
+<style>
+.key {fill: #953800;}
+.value {fill: #0969da;}
+.title {fill: #24292f; font-weight: bold;}
+</style>
+<rect width="495px" height="195px" fill="#ffffff" rx="15" stroke="#d0d7de" stroke-width="1"/>
+<text x="25" y="35" class="title">{{username}}'s GitHub Stats</text>
+<text x="25" y="75"><tspan class="key">Repos:</tspan> <tspan class="value">{{repos}}</tspan></text>
+<text x="25" y="105"><tspan class="key">Stars:</tspan> <tspan class="value">{{stars}}</tspan></text>
+<text x="25" y="135"><tspan class="key">Commits (last year):</tspan> <tspan class="value">{{commits}}</tspan></text>
+</svg>
