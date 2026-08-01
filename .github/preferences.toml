@@ -1,13 +1,13 @@
 [host]
-os = "Windows 10, Android 14, Linux"
+os = "-"
 uptime = "-"
 host = "-"
 kernel = "-"
-ide = "IDEA 2023.3.2, VSCode 1.96.0"
+ide = "-"
 
 [languages]
-secondary = "English"
-native = "Indonesian"
+secondary = "-"
+native = "-"
 
 [skills]
 softskill = "-"

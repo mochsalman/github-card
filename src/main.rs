@@ -7,17 +7,27 @@ use std::fs;
 struct GraphQLResponse { data: DataWrapper }
 #[derive(Deserialize, Debug)]
 struct DataWrapper { user: UserData }
+
 #[derive(Deserialize, Debug)]
 struct UserData {
     #[serde(rename = "contributionsCollection")]
     contributions_collection: ContributionsCollection,
+    followers: Followers,
     repositories: Repositories,
 }
 #[derive(Deserialize, Debug)]
 struct ContributionsCollection {
     #[serde(rename = "contributionCalendar")]
     contribution_calendar: ContributionCalendar,
+    #[serde(rename = "totalRepositoriesWithContributedCommits")]
+    total_repositories_with_contributed_commits: u32,
 }
+#[derive(Deserialize, Debug)]
+struct Followers {
+    #[serde(rename = "totalCount")]
+    total_count: u32,
+}
+
 #[derive(Deserialize, Debug)]
 struct ContributionCalendar {
     #[serde(rename = "totalContributions")]
@@ -111,7 +121,7 @@ async fn main() {
             .unwrap_or_else(|e| panic!("format TOML salah di {config_path}: {e}"));
         
         match fetch_stats(username).await {
-            Ok((commits, repos, stars, top_languages)) => {
+            Ok((commits, repos, stars, top_languages, contributed, followers)) => {
                 for theme in ["dark", "light"] {
                     let template_path = format!(".github/templates/card_{theme}.svg");
                     let template = fs::read_to_string(&template_path)
@@ -123,6 +133,8 @@ async fn main() {
                         .replace("{{stars}}", &stars.to_string())
                         .replace("{{commits}}", &commits.to_string())
                         .replace("{{lang_programming}}", &top_languages)
+                        .replace("{{contributed}}", &contributed.to_string()) 
+                        .replace("{{follower}}", &followers.to_string()) 
                         // field baru
                         .replace("{{os}}", &config.host.os)
                         .replace("{{uptime}}", &config.host.uptime)
@@ -148,7 +160,7 @@ async fn main() {
     }
 }
 
-async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String), String> {
+async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32), String> {
     let token = std::env::var("GITHUB_PAT").map_err(|_| "GITHUB_PAT tidak ada".to_string())?;
     let client = reqwest::Client::new();
 
@@ -156,7 +168,11 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String), String> 
         "query": r#"
             query($login: String!) {
                 user(login: $login) {
-                    contributionsCollection { contributionCalendar { totalContributions } }
+                    contributionsCollection {
+                        contributionCalendar { totalContributions }
+                        totalRepositoriesWithContributedCommits
+                    }
+                    followers { totalCount }
                     repositories(first: 100, ownerAffiliations: OWNER) {
                         totalCount
                         nodes {
@@ -189,6 +205,8 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String), String> 
     let commits = parsed.data.user.contributions_collection.contribution_calendar.total_contributions;
     let repos = parsed.data.user.repositories.total_count;
     let stars: u32 = parsed.data.user.repositories.nodes.iter().map(|r| r.stargazers.total_count).sum();
+    let contributed = parsed.data.user.contributions_collection.total_repositories_with_contributed_commits;
+    let followers = parsed.data.user.followers.total_count;
 
     // --- agregasi bahasa dari semua repo ---
     let mut lang_totals: HashMap<String, u64> = HashMap::new();
@@ -208,5 +226,5 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String), String> 
         .collect::<Vec<_>>()
         .join(", ");
 
-    Ok((commits, repos, stars, top_languages))
+    Ok((commits, repos, stars, top_languages, contributed, followers))
 }
