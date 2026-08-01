@@ -44,14 +44,14 @@ async fn main() {
     let usernames: Vec<&str> = allowed.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
 
     // pastikan folder output ada
-    fs::create_dir_all("generated").expect("gagal bikin folder generated/");
+    // fs::create_dir_all("generated").expect("gagal bikin folder generated/"); // pindah ke .github/
 
     for username in usernames {
         println!("Generating stats untuk {username}...");
         match fetch_stats(username).await {
             Ok((commits, repos, stars)) => {
                 for theme in ["dark", "light"] {
-                    let template_path = format!(".github/card_{theme}.svg");
+                    let template_path = format!(".github/templates/card_{theme}.svg");
                     let template = fs::read_to_string(&template_path)
                         .unwrap_or_else(|_| panic!("gagal baca {template_path}"));
 
@@ -61,7 +61,7 @@ async fn main() {
                         .replace("{{stars}}", &stars.to_string())
                         .replace("{{commits}}", &commits.to_string());
 
-                    let out_path = format!("generated/{username}_{theme}.svg");
+                    let out_path = format!(".github/{username}_{theme}.svg");
                     fs::write(&out_path, svg).expect("gagal tulis file SVG");
                     println!("  -> {out_path} tersimpan");
                 }
