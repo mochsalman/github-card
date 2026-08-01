@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde_json::json;
+use std::collections::HashMap;
 use std::fs;
 
 #[derive(Deserialize, Debug)]
@@ -28,8 +29,6 @@ struct Repositories {
     total_count: u32,
     nodes: Vec<RepoNode>,
 }
-#[derive(Deserialize, Debug)]
-struct RepoNode { stargazers: Stargazers }
 #[derive(Deserialize, Debug)]
 struct Stargazers {
     #[serde(rename = "totalCount")]
@@ -72,6 +71,24 @@ struct EmailConfig {
     personal: String,
     work: String,
 }
+#[derive(Deserialize, Debug)]
+struct RepoNode {
+    stargazers: Stargazers,
+    languages: LanguageConnection,
+}
+#[derive(Deserialize, Debug)]
+struct LanguageConnection {
+    edges: Vec<LanguageEdge>,
+}
+#[derive(Deserialize, Debug)]
+struct LanguageEdge {
+    size: u64,
+    node: LanguageNode,
+}
+#[derive(Deserialize, Debug)]
+struct LanguageNode {
+    name: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -94,7 +111,7 @@ async fn main() {
             .unwrap_or_else(|e| panic!("format TOML salah di {config_path}: {e}"));
         
         match fetch_stats(username).await {
-            Ok((commits, repos, stars)) => {
+            Ok((commits, repos, stars, top_languages)) => {
                 for theme in ["dark", "light"] {
                     let template_path = format!(".github/templates/card_{theme}.svg");
                     let template = fs::read_to_string(&template_path)
@@ -105,6 +122,7 @@ async fn main() {
                         .replace("{{repos}}", &repos.to_string())
                         .replace("{{stars}}", &stars.to_string())
                         .replace("{{commits}}", &commits.to_string())
+                        .replace("{{lang_programming}}", &top_languages)
                         // field baru
                         .replace("{{os}}", &config.host.os)
                         .replace("{{uptime}}", &config.host.uptime)
@@ -130,7 +148,7 @@ async fn main() {
     }
 }
 
-async fn fetch_stats(username: &str) -> Result<(u32, u32, u32), String> {
+async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String), String> {
     let token = std::env::var("GITHUB_PAT").map_err(|_| "GITHUB_PAT tidak ada".to_string())?;
     let client = reqwest::Client::new();
 
@@ -141,7 +159,15 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32), String> {
                     contributionsCollection { contributionCalendar { totalContributions } }
                     repositories(first: 100, ownerAffiliations: OWNER) {
                         totalCount
-                        nodes { stargazers { totalCount } }
+                        nodes {
+                            stargazers { totalCount }
+                            languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+                                edges {
+                                    size
+                                    node { name }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -164,5 +190,23 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32), String> {
     let repos = parsed.data.user.repositories.total_count;
     let stars: u32 = parsed.data.user.repositories.nodes.iter().map(|r| r.stargazers.total_count).sum();
 
-    Ok((commits, repos, stars))
+    // --- agregasi bahasa dari semua repo ---
+    let mut lang_totals: HashMap<String, u64> = HashMap::new();
+    for repo in &parsed.data.user.repositories.nodes {
+        for edge in &repo.languages.edges {
+            *lang_totals.entry(edge.node.name.clone()).or_insert(0) += edge.size;
+        }
+    }
+
+    let mut lang_vec: Vec<(String, u64)> = lang_totals.into_iter().collect();
+    lang_vec.sort_by(|a, b| b.1.cmp(&a.1)); // urut dari terbesar
+
+    let top_languages: String = lang_vec
+        .into_iter()
+        .take(5)
+        .map(|(name, _)| name)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Ok((commits, repos, stars, top_languages))
 }
