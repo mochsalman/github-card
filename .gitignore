@@ -1,2 +1,7 @@
 /target
 .env
+
+# --- Nix / Devenv ---
+.devenv/
+.envrc
+.direnv/
