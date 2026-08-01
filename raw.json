@@ -1,0 +1,25 @@
+{
+  "data": {
+    "user": {
+      "contributionsCollection": {
+        "contributionCalendar": { "totalContributions": 14617 }
+      },
+      "repositories": {
+        "totalCount": 11,
+        "nodes": [
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 1 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 1 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } },
+          { "stargazers": { "totalCount": 2 } }
+        ]
+      }
+    }
+  }
+}

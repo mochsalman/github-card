@@ -1,4 +1,7 @@
+use axum::http::header;
+use axum::response::{IntoResponse, Response};
 use axum::{routing::get, Router};
+
 use serde::Deserialize;
 use serde_json::json;
 
@@ -69,14 +72,41 @@ struct Stargazers {
 // --- Handler untuk GET /api/stats/{username} ---
 async fn stats_handler(
     axum::extract::Path(username): axum::extract::Path<String>,
-) -> String {
-    match fetch_stats(&username).await {
-        Ok(stats) => format!(
-            "Commits: {}\nRepos: {}\nTotal Stars: {}",
-            stats.0, stats.1, stats.2
-        ),
-        Err(e) => format!("Error: {e}"),
+) -> Response {
+    if !is_allowed(&username) {
+        return (
+            axum::http::StatusCode::NOT_FOUND,
+            "Username tidak terdaftar",
+        ).into_response();
     }
+
+    match fetch_stats(&username).await {
+        Ok((commits, repos, stars)) => {
+            let template = std::fs::read_to_string("templates/card.svg")
+                .expect("gagal baca templates/card.svg");
+
+            let svg = template
+                .replace("{{username}}", &username)
+                .replace("{{repos}}", &repos.to_string())
+                .replace("{{stars}}", &stars.to_string())
+                .replace("{{commits}}", &commits.to_string());
+
+            (
+                [(header::CONTENT_TYPE, "image/svg+xml")],
+                svg,
+            ).into_response()
+        }
+        Err(e) => format!("Error: {e}").into_response(),
+    }
+}
+
+// Fungsi kecil: cek apakah username ada di ALLOWED_USERS
+fn is_allowed(username: &str) -> bool {
+    let allowed = std::env::var("ALLOWED_USERS").unwrap_or_default();
+    allowed
+        .split(',')
+        .map(|s| s.trim())
+        .any(|allowed_user| allowed_user.eq_ignore_ascii_case(username))
 }
 
 // Return (total_commits, total_repos, total_stars)
@@ -114,7 +144,11 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32), String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    let parsed: GraphQLResponse = response.json().await.map_err(|e| e.to_string())?;
+    // log raw json to stdout
+    let raw_text = response.text().await.map_err(|e| e.to_string())?;
+    println!("RAW RESPONSE:\n{raw_text}");
+
+    let parsed: GraphQLResponse = serde_json::from_str(&raw_text).map_err(|e| e.to_string())?;
 
     let commits = parsed.data.user.contributions_collection.contribution_calendar.total_contributions;
     let repos = parsed.data.user.repositories.total_count;
