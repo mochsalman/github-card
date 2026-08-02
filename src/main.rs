@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -198,6 +199,12 @@ async fn main() {
                     let template = fs::read_to_string(&template_path)
                         .unwrap_or_else(|_| panic!("gagal baca {template_path}"));
 
+                    let uptime_display = if config.host.uptime == "-" {
+                        "-".to_string()
+                    } else {
+                        calculate_uptime(&config.host.uptime)
+                    };
+
                     let svg = template
                         .replace("{{username}}", username)
                         .replace("{{repos}}", &repos.to_string())
@@ -209,6 +216,7 @@ async fn main() {
                         .replace("{{loc_data}}", &loc_data.to_string())
                         .replace("{{loc_add}}", &loc_add.to_string())
                         .replace("{{loc_del}}", &loc_del.to_string())
+                        .replace("{{uptime}}", &uptime_display)
                         // field baru
                         .replace("{{os}}", &config.host.os)
                         .replace("{{uptime}}", &config.host.uptime)
@@ -447,4 +455,55 @@ async fn get_repo_commit_count(
         .and_then(|b| b.target)
         .map(|t| t.history.total_count)
         .unwrap_or(0))
+}
+
+// Hitung selisih kalender (tahun, bulan, hari) dari tanggal `dd/mm/yyyy` sampai hari ini
+fn calculate_uptime(date_str: &str) -> String {
+    let birth = match NaiveDate::parse_from_str(date_str, "%d/%m/%Y") {
+        Ok(d) => d,
+        Err(_) => return "-".to_string(), // format tanggal salah, fallback aman
+    };
+
+    let today = Utc::now().date_naive();
+
+    if birth > today {
+        return "-".to_string(); // tanggal di masa depan, nggak masuk akal dihitung
+    }
+
+    let mut years = today.year() - birth.year();
+    let mut months = today.month() as i32 - birth.month() as i32;
+    let mut days = today.day() as i32 - birth.day() as i32;
+
+    if days < 0 {
+        months -= 1;
+        let (prev_year, prev_month) = if today.month() == 1 {
+            (today.year() - 1, 12)
+        } else {
+            (today.year(), today.month() - 1)
+        };
+        days += days_in_month(prev_year, prev_month) as i32;
+    }
+
+    if months < 0 {
+        years -= 1;
+        months += 12;
+    }
+
+    format!(
+        "{} year{}, {} month{}, {} day{}",
+        years, if years != 1 { "s" } else { "" },
+        months, if months != 1 { "s" } else { "" },
+        days, if days != 1 { "s" } else { "" },
+    )
+}
+
+// Helper: jumlah hari dalam bulan tertentu (buat "pinjam" hari saat days < 0)
+fn days_in_month(year: i32, month: u32) -> u32 {
+    let next_month = if month == 12 {
+        NaiveDate::from_ymd_opt(year + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd_opt(year, month + 1, 1)
+    }.unwrap();
+    let this_month = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+    (next_month - this_month).num_days() as u32
 }

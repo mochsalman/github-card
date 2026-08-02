@@ -1,22 +1,23 @@
 [host]
-os = "-"
-uptime = "-"
-host = "-"
-kernel = "-"
-ide = "-"
+os     = "NixOS 26.11 (Zokor) x86_64"
+uptime = "01/08/2023" # format: dd/mm/yyyy 
+host   = "DE/DL Informatics / Computer Science"
+kernel = "Cyber Asia, University"
+ide    = "ZED 1.9.0 (GUI), HELIX 25.07.1 (TUI)"
 
 [languages]
-secondary = "-"
-native = "-"
+secondary = "English, Arabic (Boarding School)"
+native    = "Indonesian"
 
 [skills]
-softskill = "-"
-hardskill = "-"
+softskill = "Minecraft Modding, iOS Jailbraking"
+hardskill = "Overclocking, Undervolting"
 
 [contact]
-linkedIn = "-"
-discord = "-"
+linkedIn = "msalmanrafadhlih"
+discord  = "tquilla(dot)"
 
 [contact.email]
-personal = "-"
-work = "-"
+personal  = "tquilla@proton.me"
+personal2 = "message.me@msalmanrafadhlih.dev"
+work      = "contact@palanabilding.inc"
