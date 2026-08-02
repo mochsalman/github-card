@@ -66,6 +66,6 @@ text, tspan {white-space: pre;}
 <tspan x="390" y="450">- GitHub Stats</tspan> -—————————————————————————————————————————-—-
 <tspan x="390" y="470" class="cc">. </tspan><tspan class="key">Repos</tspan>:<tspan class="cc" id="repo_data_dots"> .... </tspan><tspan class="value" id="repo_data">{{repos}}</tspan> {<tspan class="key">Contributed</tspan>: <tspan class="value" id="contrib_data">{{contributed}}</tspan>} | <tspan class="key">Stars</tspan>:<tspan class="cc" id="star_data_dots"> ........... </tspan><tspan class="value" id="star_data">{{stars}}</tspan>
 <tspan x="390" y="490" class="cc">. </tspan><tspan class="key">Commmits</tspan>:<tspan class="cc" id="commit_data_dots"> ................. </tspan><tspan class="value" id="commit_data">{{commits}}</tspan> | <tspan class="key">Followers</tspan>:<tspan class="cc" id="follower_data_dots"> ....... </tspan><tspan class="value" id="follower_data">{{follower}}</tspan>
-<tspan x="390" y="510" class="cc">. </tspan><tspan class="key">Lines of Code on GitHub</tspan>:<tspan class="cc" id="loc_data_dots">. </tspan><tspan class="value" id="loc_data">-</tspan>
+<tspan x="390" y="510" class="cc">. </tspan><tspan class="key">Lines of Code on GitHub</tspan>:<tspan class="cc" id="loc_data_dots">. </tspan><tspan class="value" id="loc_data">{{loc_data}}</tspan> ( <tspan class="addColor" id="loc_add">{{loc_add}}</tspan>++, <tspan class="delColor" id="loc_del">{{loc_del}}</tspan>-- )
 </text>
 </svg>

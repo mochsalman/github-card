@@ -42,9 +42,7 @@ struct Repositories {
 #[derive(Deserialize, Debug)]
 struct Stargazers {
     #[serde(rename = "totalCount")]
-    total_count: u32,
-}
-#[derive(Deserialize, Debug)]
+    total_count: u32, } #[derive(Deserialize, Debug)]
 struct UserConfig {
     host: HostConfig,
     languages: LanguagesConfig,
@@ -83,6 +81,7 @@ struct EmailConfig {
 }
 #[derive(Deserialize, Debug)]
 struct RepoNode {
+    name: String,
     stargazers: Stargazers,
     languages: LanguageConnection,
 }
@@ -99,6 +98,59 @@ struct LanguageEdge {
 struct LanguageNode {
     name: String,
 }
+#[derive(Deserialize, Debug)]
+struct RepoLocResponse {
+    data: RepoLocData,
+}
+#[derive(Deserialize, Debug)]
+struct RepoLocData {
+    repository: Option<RepositoryHistory>,
+}
+#[derive(Deserialize, Debug)]
+struct RepositoryHistory {
+    #[serde(rename = "defaultBranchRef")]
+    default_branch_ref: Option<DefaultBranchRef>,
+}
+#[derive(Deserialize, Debug)]
+struct DefaultBranchRef {
+    target: Option<CommitTarget>,
+}
+#[derive(Deserialize, Debug)]
+struct CommitTarget {
+    history: CommitHistory,
+}
+#[derive(Deserialize, Debug)]
+struct CommitHistory {
+    #[serde(rename = "pageInfo")]
+    page_info: PageInfo,
+    edges: Vec<CommitEdge>,
+}
+#[derive(Deserialize, Debug)]
+struct PageInfo {
+    #[serde(rename = "hasNextPage")]
+    has_next_page: bool,
+    #[serde(rename = "endCursor")]
+    end_cursor: Option<String>,
+}
+#[derive(Deserialize, Debug)]
+struct CommitEdge {
+    node: CommitNode,
+}
+#[derive(Deserialize, Debug)]
+struct CommitNode {
+    additions: u64,
+    deletions: u64,
+    author: CommitAuthor,
+}
+#[derive(Deserialize, Debug)]
+struct CommitAuthor {
+    user: Option<CommitAuthorUser>, // bisa null kalau akun sudah dihapus, dsb
+}
+#[derive(Deserialize, Debug)]
+struct CommitAuthorUser {
+    login: String,
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -121,7 +173,8 @@ async fn main() {
             .unwrap_or_else(|e| panic!("format TOML salah di {config_path}: {e}"));
         
         match fetch_stats(username).await {
-            Ok((commits, repos, stars, top_languages, contributed, followers)) => {
+            Ok((commits, repos, stars, top_languages, contributed, followers, loc_add, loc_del)) => {
+                let loc_data = loc_add.saturating_sub(loc_del); // ner lines = tambah - hapus
                 for theme in ["dark", "light"] {
                     let template_path = format!(".github/templates/card_{theme}.svg");
                     let template = fs::read_to_string(&template_path)
@@ -135,6 +188,9 @@ async fn main() {
                         .replace("{{lang_programming}}", &top_languages)
                         .replace("{{contributed}}", &contributed.to_string()) 
                         .replace("{{follower}}", &followers.to_string()) 
+                        .replace("{{loc_data}}", &loc_data.to_string())
+                        .replace("{{loc_add}}", &loc_add.to_string())
+                        .replace("{{loc_del}}", &loc_del.to_string())
                         // field baru
                         .replace("{{os}}", &config.host.os)
                         .replace("{{uptime}}", &config.host.uptime)
@@ -160,7 +216,87 @@ async fn main() {
     }
 }
 
-async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32), String> {
+
+
+// Hitung total additions & deletions untuk 1 repo, khusus commit dari `username`
+async fn fetch_repo_loc(
+    client: &reqwest::Client,
+    token: &str,
+    owner: &str,
+    repo_name: &str,
+    username: &str,
+) -> Result<(u64, u64), String> {
+    let mut total_add: u64 = 0;
+    let mut total_del: u64 = 0;
+    let mut cursor: Option<String> = None;
+    let mut page_count = 0;
+    const MAX_PAGES: u32 = 20; // safety cap: maks 2000 commit per repo, biar nggak kebablasan di repo raksasa
+
+    loop {
+        let query = json!({
+            "query": r#"
+                query($owner: String!, $name: String!, $cursor: String) {
+                    repository(owner: $owner, name: $name) {
+                        defaultBranchRef {
+                            target {
+                                ... on Commit {
+                                    history(first: 100, after: $cursor) {
+                                        pageInfo { hasNextPage endCursor }
+                                        edges {
+                                            node {
+                                                additions
+                                                deletions
+                                                author { user { login } }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            "#,
+            "variables": { "owner": owner, "name": repo_name, "cursor": cursor }
+        });
+
+        let response = client
+            .post("https://api.github.com/graphql")
+            .bearer_auth(token)
+            .header("User-Agent", "github-readme-card")
+            .json(&query)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let parsed: RepoLocResponse = response.json().await.map_err(|e| e.to_string())?;
+
+        // Kalau repo kosong / nggak ada default branch (misal repo baru tanpa commit), skip aja
+        let Some(repo) = parsed.data.repository else { break };
+        let Some(branch) = repo.default_branch_ref else { break };
+        let Some(target) = branch.target else { break };
+        let history = target.history;
+
+        for edge in &history.edges {
+            let is_mine = edge.node.author.user.as_ref()
+                .map(|u| u.login.eq_ignore_ascii_case(username))
+                .unwrap_or(false);
+            if is_mine {
+                total_add += edge.node.additions;
+                total_del += edge.node.deletions;
+            }
+        }
+
+        page_count += 1;
+        if !history.page_info.has_next_page || page_count >= MAX_PAGES {
+            break;
+        }
+        cursor = history.page_info.end_cursor;
+    }
+
+    Ok((total_add, total_del))
+}
+
+async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32, u64, u64), String> {
     let token = std::env::var("GITHUB_PAT").map_err(|_| "GITHUB_PAT tidak ada".to_string())?;
     let client = reqwest::Client::new();
 
@@ -176,6 +312,7 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32)
                     repositories(first: 100, ownerAffiliations: OWNER) {
                         totalCount
                         nodes {
+                            name
                             stargazers { totalCount }
                             languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
                                 edges {
@@ -226,5 +363,19 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32)
         .collect::<Vec<_>>()
         .join(", ");
 
-    Ok((commits, repos, stars, top_languages, contributed, followers))
+    let mut loc_add: u64 = 0;
+    let mut loc_del: u64 = 0;
+    for repo in &parsed.data.user.repositories.nodes {
+        println!(" Menghitung LOC untuk repo: {}", repo.name);
+        match fetch_repo_loc(&client, &token, username, &repo.name, username).await {
+            Ok((add, del)) => {
+                loc_add += add;
+                loc_del += del;
+            }
+            Err(e) => eprintln!(" Gagal hitung loc repo {}: {e}", repo.name),
+        } 
+    }
+
+    
+    Ok((commits, repos, stars, top_languages, contributed, followers, loc_add, loc_del))
 }
