@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
@@ -150,6 +150,24 @@ struct CommitAuthor {
 struct CommitAuthorUser {
     login: String,
 }
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+struct RepoLocCache {
+    processed_count: u64,
+    add: u64,
+    del: u64,
+}
+#[derive(Deserialize, Debug)]
+struct RepoCountResponse { data: RepoCountData }
+#[derive(Deserialize, Debug)]
+struct RepoCountData { repository: Option<RepoCountRepository> }
+#[derive(Deserialize, Debug)]
+struct RepoCountRepository { #[serde(rename = "defaultBranchRef")] default_branch_ref: Option<RepoCountBranch> }
+#[derive(Deserialize, Debug)]
+struct RepoCountBranch { target: Option<RepoCountTarget> }
+#[derive(Deserialize, Debug)]
+struct RepoCountTarget { history: RepoCountHistory }
+#[derive(Deserialize, Debug)]
+struct RepoCountHistory { #[serde(rename = "totalCount")] total_count: u64 }
 
 
 #[tokio::main]
@@ -171,7 +189,7 @@ async fn main() {
             .unwrap_or_else(|_| panic!("gagal baca {config_path} — pastikan file config-nya ada"));
         let config: UserConfig = toml::from_str(&config_str)
             .unwrap_or_else(|e| panic!("format TOML salah di {config_path}: {e}"));
-        
+
         match fetch_stats(username).await {
             Ok((commits, repos, stars, top_languages, contributed, followers, loc_add, loc_del)) => {
                 let loc_data = loc_add.saturating_sub(loc_del); // ner lines = tambah - hapus
@@ -186,8 +204,8 @@ async fn main() {
                         .replace("{{stars}}", &stars.to_string())
                         .replace("{{commits}}", &commits.to_string())
                         .replace("{{lang_programming}}", &top_languages)
-                        .replace("{{contributed}}", &contributed.to_string()) 
-                        .replace("{{follower}}", &followers.to_string()) 
+                        .replace("{{contributed}}", &contributed.to_string())
+                        .replace("{{follower}}", &followers.to_string())
                         .replace("{{loc_data}}", &loc_data.to_string())
                         .replace("{{loc_add}}", &loc_add.to_string())
                         .replace("{{loc_del}}", &loc_del.to_string())
@@ -226,13 +244,29 @@ async fn fetch_repo_loc(
     repo_name: &str,
     username: &str,
 ) -> Result<(u64, u64), String> {
-    let mut total_add: u64 = 0;
-    let mut total_del: u64 = 0;
-    let mut cursor: Option<String> = None;
-    let mut page_count = 0;
-    const MAX_PAGES: u32 = 20; // safety cap: maks 2000 commit per repo, biar nggak kebablasan di repo raksasa
+    let cache_dir = format!(".github/loc_cache/{owner}");
+    std::fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+    let cache_path = format!("{cache_dir}/{repo_name}.json");
 
-    loop {
+    let mut cache: RepoLocCache = std::fs::read_to_string(&cache_path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+
+    let current_total = get_repo_commit_count(client, token, owner, repo_name).await?;
+
+    if current_total == cache.processed_count {
+        println!("    (cache hit, tidak ada commit baru)");
+        return Ok((cache.add, cache.del));
+    }
+
+    let new_commits_count = current_total.saturating_sub(cache.processed_count);
+    println!("    ({new_commits_count} commit baru, fetch detailnya...)");
+
+    let mut fetched: u64 = 0;
+    let mut cursor: Option<String> = None;
+
+    'paging: loop {
         let query = json!({
             "query": r#"
                 query($owner: String!, $name: String!, $cursor: String) {
@@ -242,13 +276,7 @@ async fn fetch_repo_loc(
                                 ... on Commit {
                                     history(first: 100, after: $cursor) {
                                         pageInfo { hasNextPage endCursor }
-                                        edges {
-                                            node {
-                                                additions
-                                                deletions
-                                                author { user { login } }
-                                            }
-                                        }
+                                        edges { node { additions deletions author { user { login } } } }
                                     }
                                 }
                             }
@@ -259,8 +287,7 @@ async fn fetch_repo_loc(
             "variables": { "owner": owner, "name": repo_name, "cursor": cursor }
         });
 
-        let response = client
-            .post("https://api.github.com/graphql")
+        let response = client.post("https://api.github.com/graphql")
             .bearer_auth(token)
             .header("User-Agent", "github-readme-card")
             .json(&query)
@@ -270,30 +297,34 @@ async fn fetch_repo_loc(
 
         let parsed: RepoLocResponse = response.json().await.map_err(|e| e.to_string())?;
 
-        // Kalau repo kosong / nggak ada default branch (misal repo baru tanpa commit), skip aja
         let Some(repo) = parsed.data.repository else { break };
         let Some(branch) = repo.default_branch_ref else { break };
         let Some(target) = branch.target else { break };
         let history = target.history;
 
         for edge in &history.edges {
+            if fetched >= new_commits_count { break 'paging; }
             let is_mine = edge.node.author.user.as_ref()
                 .map(|u| u.login.eq_ignore_ascii_case(username))
                 .unwrap_or(false);
             if is_mine {
-                total_add += edge.node.additions;
-                total_del += edge.node.deletions;
+                cache.add += edge.node.additions;
+                cache.del += edge.node.deletions;
             }
+            fetched += 1;
         }
 
-        page_count += 1;
-        if !history.page_info.has_next_page || page_count >= MAX_PAGES {
+        if !history.page_info.has_next_page || fetched >= new_commits_count {
             break;
         }
         cursor = history.page_info.end_cursor;
     }
 
-    Ok((total_add, total_del))
+    cache.processed_count = current_total;
+    let cache_json = serde_json::to_string_pretty(&cache).map_err(|e| e.to_string())?;
+    std::fs::write(&cache_path, cache_json).map_err(|e| e.to_string())?;
+
+    Ok((cache.add, cache.del))
 }
 
 async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32, u64, u64), String> {
@@ -373,9 +404,47 @@ async fn fetch_stats(username: &str) -> Result<(u32, u32, u32, String, u32, u32,
                 loc_del += del;
             }
             Err(e) => eprintln!(" Gagal hitung loc repo {}: {e}", repo.name),
-        } 
+        }
     }
 
-    
+
     Ok((commits, repos, stars, top_languages, contributed, followers, loc_add, loc_del))
+}
+
+async fn get_repo_commit_count(
+    client: &reqwest::Client,
+    token: &str,
+    owner: &str,
+    repo_name: &str,
+) -> Result<u64, String> {
+    let query = json!({
+        "query": r#"
+            query($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                    defaultBranchRef {
+                        target {
+                            ... on Commit { history { totalCount } }
+                        }
+                    }
+                }
+            }
+        "#,
+        "variables": { "owner": owner, "name": repo_name }
+    });
+
+    let response = client.post("https://api.github.com/graphql")
+        .bearer_auth(token)
+        .header("User-Agent", "github-readme-card")
+        .json(&query)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let parsed: RepoCountResponse = response.json().await.map_err(|e| e.to_string())?;
+
+    Ok(parsed.data.repository
+        .and_then(|r| r.default_branch_ref)
+        .and_then(|b| b.target)
+        .map(|t| t.history.total_count)
+        .unwrap_or(0))
 }
