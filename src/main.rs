@@ -213,9 +213,9 @@ async fn main() {
                         .replace("{{lang_programming}}", &top_languages)
                         .replace("{{contributed}}", &contributed.to_string())
                         .replace("{{follower}}", &followers.to_string())
-                        .replace("{{loc_data}}", &loc_data.to_string())
-                        .replace("{{loc_add}}", &loc_add.to_string())
-                        .replace("{{loc_del}}", &loc_del.to_string())
+                        .replace("{{loc_data}}", &format_power_number(loc_data))
+                        .replace("{{loc_add}}", &format_power_number(loc_add))
+                        .replace("{{loc_del}}", &format_power_number(loc_del))
                         .replace("{{uptime}}", &uptime_display)
                         // field baru
                         .replace("{{os}}", &config.host.os)
@@ -495,6 +495,35 @@ fn calculate_uptime(date_str: &str) -> String {
         months, if months != 1 { "s" } else { "" },
         days, if days != 1 { "s" } else { "" },
     )
+}
+
+// Format angka gaya "power rating" RPG: 999 tetap "999", 1_000 -> "1.00k",
+// 390_447 -> "390.45k", 1_044_061 -> "1.04M", dst. Dibulatkan 2 angka desimal
+// (biar "child value"-nya tetap kelihatan), dan otomatis naik satu tingkat
+// unit kalau pembulatan menyentuh 1000.00 (contoh: 999_996 -> bukan
+// "1000.00k" tapi langsung "1.00M").
+fn format_power_number(n: u64) -> String {
+    const UNITS: [&str; 5] = ["", "k", "M", "B", "T"];
+
+    let mut value = n as f64;
+    let mut unit_idx = 0usize;
+
+    while value >= 1000.0 && unit_idx < UNITS.len() - 1 {
+        value /= 1000.0;
+        unit_idx += 1;
+    }
+
+    if unit_idx == 0 {
+        return n.to_string();
+    }
+
+    let mut rounded = (value * 100.0).round() / 100.0;
+    if rounded >= 1000.0 && unit_idx < UNITS.len() - 1 {
+        rounded /= 1000.0;
+        unit_idx += 1;
+    }
+
+    format!("{:.2}{}", rounded, UNITS[unit_idx])
 }
 
 // Helper: jumlah hari dalam bulan tertentu (buat "pinjam" hari saat days < 0)
