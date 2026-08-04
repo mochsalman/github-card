@@ -40,7 +40,7 @@
           font-family="JetBrains Mono"
           font-size="16"
           letter-spacing="0em"
-        ><tspan x="410" y="35.26">msalmanrafadhlih</tspan></text>
+        ><tspan x="410" y="35.26">msalmanrafadhlih@tquilla</tspan></text>
 <text
           id="lines"
           fill="white"
@@ -49,10 +49,11 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
+          text-anchor="end"
         ><tspan
-            x="597.73"
+            x="1105"
             y="35.98"
-          >-&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;-</tspan></text>
+          >-&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;&#x2014;-</tspan></text>
 </g>
 <g id="Operation System">
 <g id="Option">
@@ -97,7 +98,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="824.383" y="59.98">NixOS 26.11 (Zokor) x86_64</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="59.98">NixOS 26.11 (Zokor) x86_64</tspan></text>
 </g>
 <g id="Uptime">
 <g id="Option_2">
@@ -142,7 +144,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="835.176" y="83.98">3 years, 0 months, 3 days</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="83.98">3 years, 0 months, 3 days</tspan></text>
 </g>
 <g id="Host">
 <g id="Option_3">
@@ -187,7 +190,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="867.555" y="107.98">Cyber Asia, University</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="107.98">Cyber Asia, University</tspan></text>
 </g>
 <g id="Kernel">
 <g id="Option_4">
@@ -229,8 +233,9 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
+          text-anchor="end"
         ><tspan
-            x="716.453"
+            x="1105"
             y="131.98"
           >DE/DL Informatics / Computer Science</tspan></text>
 </g>
@@ -274,8 +279,9 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
+          text-anchor="end"
         ><tspan
-            x="716.453"
+            x="1105"
             y="155.98"
           >Zed 1.9.0 (GUI), Helix 25.07.1 (TUI)</tspan></text>
 </g>
@@ -319,7 +325,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="813.59" y="203.98">Java, QML, CSS, Shell, SCSS</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="203.98">Java, QML, CSS, Shell, SCSS</tspan></text>
 </g>
 <g id="Languange.Native">
 <g id="Option_7">
@@ -364,7 +371,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="997.07" y="227.98">Indonesian</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="227.98">Indonesian</tspan></text>
 </g>
 <g id="Languange.Secondary">
 <g id="Option_8">
@@ -406,7 +414,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="824.383" y="251.98">English, Arabic (Boarding)</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="251.98">English, Arabic (Boarding)</tspan></text>
 </g>
 <g id="Skills.Software">
 <g id="Option_9">
@@ -451,7 +460,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="975.484" y="299.98">Figma, Canva</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="299.98">Figma, Canva</tspan></text>
 </g>
 <g id="Skills.Hardware">
 <g id="Option_10">
@@ -493,8 +503,9 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
+          text-anchor="end"
         ><tspan
-            x="824.383"
+            x="1105"
             y="323.98"
           >Overclocking, Undervolting</tspan></text>
 </g>
@@ -564,7 +575,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="921.52" y="395.98">tquilla@proton.me</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="395.98">tquilla@proton.me</tspan></text>
 </g>
 <g id="Email.Workl">
 <g id="Option_12">
@@ -606,8 +618,9 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
+          text-anchor="end"
         ><tspan
-            x="770.418"
+            x="1105"
             y="419.98"
           >contact.me@msalmanrafadhlih.dev</tspan></text>
 </g>
@@ -654,7 +667,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="932.312" y="467.98">msalmanrafadhlih</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="467.98">msalmanrafadhlih</tspan></text>
 </g>
 <g id="Discord">
 <g id="Option_14">
@@ -699,7 +713,8 @@
           font-family="JetBrains Mono"
           font-size="18"
           letter-spacing="0em"
-        ><tspan x="975.484" y="491.98">tquilla(dot)</tspan></text>
+          text-anchor="end"
+        ><tspan x="1105" y="491.98">tquilla(dot)</tspan></text>
 </g>
 <g id="Stats">
 <text
@@ -767,7 +782,8 @@
                 font-family="JetBrains Mono"
                 font-size="18"
                 letter-spacing="0em"
-              ><tspan x="535.621" y="563.98">12</tspan></text>
+                text-anchor="end"
+              ><tspan x="560.621" y="563.98">12</tspan></text>
 </g>
 <g id="Contributed">
 <g id="Value_16">
@@ -778,10 +794,23 @@
                   font-family="JetBrains Mono"
                   font-size="18"
                   letter-spacing="0em"
-                ><tspan x="568.141" y="563.98">{ </tspan><tspan
-                    x="708.449"
+                  text-anchor="end"
+                ><tspan
+                    x="760.449"
                     y="563.98"
-                  >: 9 }</tspan></text>
+                  >9</tspan></text>
+<text
+                  fill="#86BEFF"
+                  style="white-space: pre"
+                  xml:space="preserve"
+                  font-family="JetBrains Mono"
+                  font-size="18"
+                  letter-spacing="0em"
+                  text-anchor="end"
+                ><tspan
+                    x="730.449"
+                    y="563.98"
+                  >: </tspan></text>
 <text
                   fill="#FFBD83"
                   style="white-space: pre"
@@ -789,7 +818,10 @@
                   font-family="JetBrains Mono"
                   font-size="18"
                   letter-spacing="0em"
-                ><tspan x="589.727" y="563.98">Contributed</tspan></text>
+                ><tspan x="568.141" y="563.98">{ Contributed</tspan><tspan
+                    x="773.207"
+                    y="563.98"
+                  >}</tspan></text>
 </g>
 </g>
 </g>
@@ -833,7 +865,8 @@
               font-family="JetBrains Mono"
               font-size="18"
               letter-spacing="0em"
-            ><tspan x="708.449" y="587.98">14616</tspan></text>
+              text-anchor="end"
+            ><tspan x="783.207" y="587.98">14617</tspan></text>
 </g>
 <g id="LOC">
 <g id="Option_17">
@@ -878,13 +911,14 @@
               font-family="JetBrains Mono"
               font-size="18"
               letter-spacing="0em"
-            ><tspan x="708.449" y="611.98">390.91k</tspan></text>
+              text-anchor="end"
+            ><tspan x="783.207" y="611.98">393.40k</tspan></text>
 </g>
 </g>
 <g id="Mid">
 <text
             id="Option_18"
-            fill="#86BEFF"
+            fill="#FFBD83"
             style="white-space: pre"
             xml:space="preserve"
             font-family="JetBrains Mono"
@@ -893,7 +927,7 @@
           ><tspan x="789" y="563.98">|</tspan></text>
 <text
             id="Option_19"
-            fill="#86BEFF"
+            fill="#FFBD83"
             style="white-space: pre"
             xml:space="preserve"
             font-family="JetBrains Mono"
@@ -902,7 +936,7 @@
           ><tspan x="789" y="587.98">|</tspan></text>
 <text
             id="Option_20"
-            fill="#86BEFF"
+            fill="#FFBD83"
             style="white-space: pre"
             xml:space="preserve"
             font-family="JetBrains Mono"
@@ -948,7 +982,8 @@
               font-family="JetBrains Mono"
               font-size="18"
               letter-spacing="0em"
-            ><tspan x="1061.83" y="563.98">20</tspan></text>
+              text-anchor="end"
+            ><tspan x="1105" y="563.98">20</tspan></text>
 </g>
 <g id="Discord_3">
 <g id="Option_22">
@@ -987,12 +1022,13 @@
               font-family="JetBrains Mono"
               font-size="18"
               letter-spacing="0em"
-            ><tspan x="1061.83" y="587.98">7</tspan></text>
+              text-anchor="end"
+            ><tspan x="1105" y="587.98">7</tspan></text>
 </g>
 <g id="Discord_4">
 <g id="Option_23">
 <text
-                fill="#86BEFF"
+                fill="#FFBD83"
                 style="white-space: pre"
                 xml:space="preserve"
                 font-family="JetBrains Mono"
@@ -1016,10 +1052,10 @@
               font-family="JetBrains Mono"
               font-size="18"
               letter-spacing="0em"
-            ><tspan x="973.182" y="611.98">654.21k--</tspan></text>
+            ><tspan x="973.182" y="611.98">657.66k--</tspan></text>
 <text
               id="Option_25"
-              fill="#86BEFF"
+              fill="#FFBD83"
               style="white-space: pre"
               xml:space="preserve"
               font-family="JetBrains Mono"

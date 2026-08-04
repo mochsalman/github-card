@@ -11,6 +11,8 @@ pub struct UserConfig {
 
 #[derive(Deserialize, Debug)]
 pub struct HostConfig {
+    pub hostname: String,
+    pub username: String,
     pub os: String,
     pub uptime: String,
     pub host: String,

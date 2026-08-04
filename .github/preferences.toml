@@ -1,4 +1,6 @@
 [host]
+username = "msalmanrafadhlih"
+hostname = "tquilla"
 os     = "NixOS 26.11 (Zokor) x86_64"
 uptime = "01/08/2023" # format: dd/mm/yyyy 
 host   = "Cyber Asia, University"

@@ -3,7 +3,7 @@ use crate::format::{calculate_uptime, format_power_number};
 use crate::github::Stats;
 
 /// Ganti semua placeholder `{{...}}` di template SVG dengan data stats & config user.
-pub fn render_svg(template: &str, username: &str, stats: &Stats, config: &UserConfig) -> String {
+pub fn render_svg(template: &str, _username: &str, stats: &Stats, config: &UserConfig) -> String {
     let uptime_display = if config.host.uptime == "-" {
         "-".to_string()
     } else {
@@ -11,7 +11,6 @@ pub fn render_svg(template: &str, username: &str, stats: &Stats, config: &UserCo
     };
 
     template
-        .replace("{{username}}", username)
         .replace("{{repos}}", &stats.repos.to_string())
         .replace("{{stars}}", &stats.stars.to_string())
         .replace("{{commits}}", &stats.commits.to_string())
@@ -23,6 +22,8 @@ pub fn render_svg(template: &str, username: &str, stats: &Stats, config: &UserCo
         .replace("{{loc_del}}", &format_power_number(stats.loc_del))
         .replace("{{uptime}}", &uptime_display)
         // field dari config user (preferences.toml)
+        .replace("{{hostname}}", &config.host.hostname)
+        .replace("{{username}}", &config.host.username)
         .replace("{{os}}", &config.host.os)
         .replace("{{uptime}}", &config.host.uptime)
         .replace("{{host}}", &config.host.host)
