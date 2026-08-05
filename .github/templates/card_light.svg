@@ -22,7 +22,7 @@
 </style>
 </defs>
 <g id="Light_mode">
-<rect width="1120" height="635" rx="15" fill="white" />
+<rect width="1120" height="635" rx="15" fill="white" stroke="#333333" stroke-width="1" />
 <g id="Skull">
 <path
         id="Vector"
