@@ -2,7 +2,7 @@ name: Update GitHub Stats Cards
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # tiap hari jam 00:00 UTC
+    - cron: '0 0 * * 1' # every monday
   workflow_dispatch: {}   # supaya bisa dipicu manual dari tab "Actions"
 
 permissions:
